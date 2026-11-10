@@ -1,0 +1,43 @@
+services:
+  api:
+    build:
+      context: ./backend
+    container_name: sentinela-api
+    environment:
+      APP_ENV: docker
+      SIMULATE: "true"
+      CONFIRM_EXECUTE: "false"
+      DATABASE_URL: sqlite:////data/sentinela.db
+      LOG_SCAN_PATH: /data/logs
+      EXPORT_PATH: /data/exports
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+    container_name: sentinela-web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: sentinela-jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    environment:
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - ./:/workspace:ro
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Sentinela — plataforma de sustentação N1/N2 para monitoramento, incidentes, automação e base de conhecimento."
+    />
+    <title>Sentinela — Sustentação N1 / N2</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23071018'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%232ee6a6' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%232ee6a6'/%3E%3C/svg%3E" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #071018;
+        color: #e7f2ee;
+        font-family: "Segoe UI", system-ui, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      .boot {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #2ee6a6;
+        font-size: 13px;
+      }
+      .boot-help {
+        letter-spacing: 0;
+        text-transform: none;
+        text-align: center;
+        max-width: 36rem;
+        padding: 24px;
+        line-height: 1.5;
+        color: #e7f2ee;
+      }
+      .boot-help strong {
+        color: #2ee6a6;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+      .boot-help p {
+        margin: 12px 0;
+      }
+      .boot-help a {
+        color: #2ee6a6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot">Sentinela · inicializando console operacional</div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      (function () {
+        var devOrigin = "http://127.0.0.1:5173";
+        var handedOff = false;
+
+        function stillBooting() {
+          return !!document.querySelector("#root > .boot");
+        }
+
+        function explain() {
+          var boot = document.querySelector("#root > .boot");
+          if (!boot) return;
+          boot.className = "boot boot-help";
+          boot.textContent = "";
+          var title = document.createElement("strong");
+          title.textContent = "Console operacional parado";
+          var text = document.createElement("p");
+          text.textContent =
+            "O Live Server entregou /src/main.jsx com o tipo text/jsx. O navegador bloqueou o módulo e o React não montou. Rode npm run dev e abra o Vite na porta 5173.";
+          var link = document.createElement("a");
+          link.href = devOrigin + "/";
+          link.textContent = "Tentar " + devOrigin;
+          boot.append(title, text, link);
+        }
+
+        function handoff() {
+          if (handedOff || location.port === "5173") return;
+          if (!stillBooting()) return;
+          handedOff = true;
+          fetch(devOrigin + "/", { mode: "no-cors", cache: "no-store" })
+            .then(function () {
+              if (!stillBooting()) return;
+              var path = location.pathname === "/index.html" ? "/" : location.pathname || "/";
+              location.replace(devOrigin + path + location.search + location.hash);
+            })
+            .catch(function () {
+              handedOff = false;
+              explain();
+            });
+        }
+
+        var moduleScript = document.querySelector('script[type="module"][src="/src/main.jsx"]');
+        if (moduleScript) moduleScript.addEventListener("error", handoff);
+        window.addEventListener("load", function () {
+          window.setTimeout(function () {
+            if (stillBooting()) handoff();
+          }, 800);
+        });
+      })();
+    </script>
+  </body>
+</html>

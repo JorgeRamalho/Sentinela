@@ -1,0 +1,8 @@
+node_modules
+dist
+.venv
+backend/.venv
+**/.pytest_cache
+**/*.db
+.git
+jenkins_home
