@@ -1,3 +1,5 @@
+import { readDemoFixture } from "./demo-fixtures.js";
+
 const API = import.meta.env.VITE_API_URL || "";
 const DEMO_MODE = import.meta.env.PROD && !API;
 
@@ -6,19 +8,6 @@ export class ApiError extends Error {
     super(message);
     this.status = status;
   }
-}
-
-function demoFixtureUrl(path, method = "GET") {
-  const qIndex = path.indexOf("?");
-  const pathOnly = qIndex >= 0 ? path.slice(0, qIndex) : path;
-  const search = qIndex >= 0 ? path.slice(qIndex) : "";
-  const segments = pathOnly
-    .replace(/^\/api\/?/, "")
-    .split("/")
-    .filter(Boolean);
-  const suffix = segments.length ? segments.join("__") : "meta";
-  const prefix = method === "GET" || method === "HEAD" ? "api" : "post";
-  return `/demo-api/${prefix}__${suffix}.json${search}`;
 }
 
 function filterKnowledge(rows, query) {
@@ -52,17 +41,41 @@ async function readBody(response) {
   }
 }
 
+function applyKnowledgeFilter(body, path) {
+  if (!path.startsWith("/api/knowledge")) {
+    return body;
+  }
+  const qIndex = path.indexOf("?");
+  if (qIndex < 0) {
+    return body;
+  }
+  const params = new URLSearchParams(path.slice(qIndex + 1));
+  const q = params.get("q") || "";
+  if (!Array.isArray(body)) {
+    return body;
+  }
+  return filterKnowledge(body, q);
+}
+
 export async function api(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();
-  const url = DEMO_MODE ? demoFixtureUrl(path, method) : `${API}${path}`;
-  const fetchMethod = DEMO_MODE && method !== "GET" && method !== "HEAD" ? "GET" : method;
 
-  const response = await fetch(url, {
+  if (DEMO_MODE) {
+    try {
+      let body = readDemoFixture(path, method);
+      body = applyKnowledgeFilter(body, path);
+      return body;
+    } catch (err) {
+      throw new ApiError(err.message, 404);
+    }
+  }
+
+  const response = await fetch(`${API}${path}`, {
     ...options,
-    method: fetchMethod,
+    method,
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
   });
-  let body = await readBody(response);
+  const body = await readBody(response);
   if (!response.ok) {
     let detail = response.statusText;
     if (body && typeof body === "object" && body.detail !== undefined) {
@@ -72,16 +85,5 @@ export async function api(path, options = {}) {
     }
     throw new ApiError(detail, response.status);
   }
-
-  if (DEMO_MODE && method === "GET" && path.startsWith("/api/knowledge")) {
-    const qIndex = path.indexOf("?");
-    const search = qIndex >= 0 ? path.slice(qIndex + 1) : "";
-    const params = new URLSearchParams(search);
-    const q = params.get("q") || "";
-    if (Array.isArray(body)) {
-      body = filterKnowledge(body, q);
-    }
-  }
-
   return body;
 }
