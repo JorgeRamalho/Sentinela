@@ -54,7 +54,11 @@ export default function Layout() {
             <h1>Ambiente de sustentação</h1>
           </div>
           <div className="top-meta">
-            {offline && <span className="pill warn">API offline — suba o backend na porta 8000</span>}
+            {offline && (
+              <span className="pill warn" title="Confira o serviço /api na hospedagem">
+                API indisponível — backend não responde
+              </span>
+            )}
             <span className={`pill ${meta.simulate ? "ok" : "danger"}`}>
               {meta.simulate ? "SIMULAR = true" : "EXECUÇÃO REAL"}
             </span>

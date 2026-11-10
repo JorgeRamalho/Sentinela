@@ -7,24 +7,40 @@ export class ApiError extends Error {
   }
 }
 
+async function readBody(response) {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+  const contentType = response.headers.get("content-type") || "";
+  const looksJson =
+    contentType.includes("application/json") ||
+    text.trimStart().startsWith("{") ||
+    text.trimStart().startsWith("[");
+  if (!looksJson) {
+    return text;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 export async function api(path, options = {}) {
   const response = await fetch(`${API}${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
     ...options,
   });
+  const body = await readBody(response);
   if (!response.ok) {
     let detail = response.statusText;
-    try {
-      const body = await response.json();
-      detail = body.detail || JSON.stringify(body);
-    } catch {
-      detail = await response.text();
+    if (body && typeof body === "object" && body.detail !== undefined) {
+      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    } else if (typeof body === "string" && body.trim()) {
+      detail = body.trim();
     }
     throw new ApiError(detail, response.status);
   }
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    return response.json();
-  }
-  return response;
+  return body;
 }
