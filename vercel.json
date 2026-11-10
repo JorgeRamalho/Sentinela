@@ -2,17 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install && pip install -r requirements.txt",
   "functions": {
-    "api/index.py": {
-      "maxDuration": 60,
-      "includeFiles": "{backend/**,data/logs/**}"
+    "api/handler.js": {
+      "includeFiles": "api/_fixtures/**"
     }
   },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
+      "source": "/api/:path*",
+      "destination": "/api/handler"
     },
     {
       "source": "/(.*)",
@@ -21,8 +19,6 @@
   ],
   "env": {
     "SIMULATE": "true",
-    "CONFIRM_EXECUTE": "false",
-    "DATABASE_URL": "sqlite:////tmp/sentinela.db",
     "APP_ENV": "production"
   }
 }
